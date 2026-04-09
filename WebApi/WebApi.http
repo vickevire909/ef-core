@@ -1,0 +1,21 @@
+@WebApi_HostAddress = http://localhost:5000
+@orderId = 019d5f1c-733a-757c-9712-bd8880a5e62a
+
+POST {{WebApi_HostAddress}}/api/v1/orders
+Content-Type: application/json
+
+{
+  "description": "Sample Order"
+}
+
+###
+
+GET {{WebApi_HostAddress}}/api/v1/orders
+Accept: application/json
+
+###
+
+GET {{WebApi_HostAddress}}/api/v1/orders/{{orderId}}
+Accept: application/json
+
+###

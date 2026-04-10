@@ -38,33 +38,34 @@ public class AuditInfoInterceptor : SaveChangesInterceptor
 
     private void Intercept(DbContextEventData eventData)
     {
-        if (eventData.Context is AppDbContext appDbContext)
+        if (eventData.Context is not AppDbContext appDbContext)
         {
-            string username = currentUser.GetName();
-            DateTime utcNow = dateTimeProvider.UtcNow;
-            foreach (var entry in appDbContext.ChangeTracker.Entries<Entity>())
+            return;
+        }
+        string username = currentUser.GetName();
+        DateTime utcNow = dateTimeProvider.UtcNow;
+        foreach (var entry in appDbContext.ChangeTracker.Entries<Entity>())
+        {
+            if (entry.State == EntityState.Added)
             {
-                if (entry.State == EntityState.Added)
+                if (entry.Metadata.FindProperty(AuditField.CreatedBy) != null)
                 {
-                    if (entry.Metadata.FindProperty(AuditField.CreatedBy) != null)
-                    {
-                        entry.Property<string>(AuditField.CreatedBy).CurrentValue = username;
-                    }
-                    if (entry.Metadata.FindProperty(AuditField.CreatedAt) != null)
-                    {
-                        entry.Property<DateTime>(AuditField.CreatedAt).CurrentValue = utcNow;
-                    }
+                    entry.Property<string>(AuditField.CreatedBy).CurrentValue = username;
                 }
-                if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                if (entry.Metadata.FindProperty(AuditField.CreatedAt) != null)
                 {
-                    if (entry.Metadata.FindProperty(AuditField.UpdatedBy) != null)
-                    {
-                        entry.Property<string>(AuditField.UpdatedBy).CurrentValue = username;
-                    }
-                    if (entry.Metadata.FindProperty(AuditField.UpdatedAt) != null)
-                    {
-                        entry.Property<DateTime>(AuditField.UpdatedAt).CurrentValue = utcNow;
-                    }
+                    entry.Property<DateTime>(AuditField.CreatedAt).CurrentValue = utcNow;
+                }
+            }
+            if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+            {
+                if (entry.Metadata.FindProperty(AuditField.UpdatedBy) != null)
+                {
+                    entry.Property<string>(AuditField.UpdatedBy).CurrentValue = username;
+                }
+                if (entry.Metadata.FindProperty(AuditField.UpdatedAt) != null)
+                {
+                    entry.Property<DateTime>(AuditField.UpdatedAt).CurrentValue = utcNow;
                 }
             }
         }

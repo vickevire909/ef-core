@@ -1,24 +1,27 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using WebApi.Infrastructure.Outbox.Interfaces;
 using WebApi.Infrastructure.Persistence;
 
 namespace WebApi.Infrastructure.Outbox;
 
 public class OutboxProcessor
 {
-    private readonly AppDbContext appDbContext;
     private readonly ILogger<OutboxProcessor> logger;
+    private readonly IOutboxMessageDispatcher outboxMessageDispatcher;
     private readonly MessageTypeCache messageTypeCache;
+    private readonly AppDbContext appDbContext;
 
     public OutboxProcessor(
         ILogger<OutboxProcessor> logger,
-        AppDbContext appDbContext,
-        MessageTypeCache messageTypeCache
+        IOutboxMessageDispatcher outboxMessageDispatcher,
+        MessageTypeCache messageTypeCache,
+        AppDbContext appDbContext
     )
     {
         this.logger = logger;
-        this.appDbContext = appDbContext;
+        this.outboxMessageDispatcher = outboxMessageDispatcher;
         this.messageTypeCache = messageTypeCache;
+        this.appDbContext = appDbContext;
     }
 
     public int MaxRetries { get; private set; } = 5;
@@ -53,8 +56,11 @@ public class OutboxProcessor
             try
             {
                 var type = messageTypeCache.GetType(message.Type);
-                var content = JsonSerializer.Deserialize(message.Payload, type);
-                // TODO dispatch here
+                await outboxMessageDispatcher.DispatchAsync(
+                    message.Payload,
+                    type,
+                    cancellationToken
+                );
                 succeeded.Add(message.Id);
             }
             catch (Exception ex)

@@ -4,7 +4,9 @@ using WebApi;
 using WebApi.Domain.Entities;
 using WebApi.Domain.Enums;
 using WebApi.Domain.Services;
+using WebApi.Infrastructure.IntegrationEventHandlers;
 using WebApi.Infrastructure.Persistence;
+using WebApi.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +16,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
-builder.Services.AddOpenApi().AddWebApi().AddPersistence().AddOutbox();
+builder.Services.AddOpenApi().AddWebApi().AddPersistence();
+builder
+    .Services.AddOutboxProcessing()
+    .WithEventHandler<OrderCreatedIntegrationEventHandler, OrderCreatedIntegrationEvent>()
+    .WithEventHandler<CustomerCreatedIntegrationEventHandler, CustomerCreatedIntegrationEvent>();
 
 var app = builder.Build();
 
@@ -32,11 +38,19 @@ app.MapPost(
         CreateOrderRequest request,
         AppDbContext dbContext,
         IDateTimeProvider dateTimeProvider,
+        IntegrationEventCollector integrationEventCollector,
         CancellationToken cancellationToken
     ) =>
     {
         var order = Order.Create(request.Description, dateTimeProvider.UtcNow);
         dbContext.Orders.Add(order);
+        integrationEventCollector.Add(
+            new OrderCreatedIntegrationEvent
+            {
+                OrderId = order.Id,
+                OccurredAt = dateTimeProvider.UtcNow,
+            }
+        );
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.Created($"/api/v1/orders/{order.Id}", new CreateOrderResponse(order.Id));
     }

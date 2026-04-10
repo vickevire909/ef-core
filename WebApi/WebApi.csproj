@@ -24,6 +24,10 @@
     <Folder Include="Domain/Services/" />
     <Folder Include="Domain/ValueObjects/" />
     <Folder Include="Endpoints/" />
+    <Folder Include="Infrastructure/IntegrationEventHandlers/" />
+    <Folder Include="Infrastructure/Outbox/Interfaces/" />
+    <Folder Include="Messaging/" />
+    <Folder Include="Messaging/Contracts/" />
     <Folder Include="UseCases/" />
   </ItemGroup>
 </Project>

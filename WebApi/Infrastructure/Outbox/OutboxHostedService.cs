@@ -2,17 +2,17 @@ namespace WebApi.Infrastructure.Outbox;
 
 public class OutboxBackgroundService : BackgroundService
 {
-    private readonly IServiceProvider serviceProvider;
     private readonly ILogger<OutboxBackgroundService> logger;
+    private readonly IServiceScopeFactory serviceScopeFactory;
     private int consecutiveFailures = 0;
 
     public OutboxBackgroundService(
-        IServiceProvider serviceProvider,
-        ILogger<OutboxBackgroundService> logger
+        ILogger<OutboxBackgroundService> logger,
+        IServiceScopeFactory serviceScopeFactory
     )
     {
-        this.serviceProvider = serviceProvider;
         this.logger = logger;
+        this.serviceScopeFactory = serviceScopeFactory;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -23,7 +23,7 @@ public class OutboxBackgroundService : BackgroundService
         {
             try
             {
-                using var scope = serviceProvider.CreateScope();
+                using var scope = serviceScopeFactory.CreateScope();
                 var outboxProcessor = scope.ServiceProvider.GetRequiredService<OutboxProcessor>();
                 await outboxProcessor.ProcessBatchAsync(stoppingToken);
 
